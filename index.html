@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Savaş Oyunu</title>
+
+<style>
+body{
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+}
+
+.game{
+  background:#020617;
+  padding:30px;
+  border-radius:12px;
+  width:400px;
+  box-shadow:0 0 20px black;
+}
+
+h1{text-align:center;}
+
+.bar{
+  height:20px;
+  background:#1e293b;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:10px;
+}
+
+.fill{
+  height:100%;
+  transition:width .3s;
+}
+
+.player{background:#22c55e;}
+.monster{background:#ef4444;}
+
+button{
+  width:100%;
+  margin-top:8px;
+  padding:12px;
+  font-size:16px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+.attack{background:#2563eb;color:white;}
+.heal{background:#22c55e;color:black;}
+.special{background:#eab308;}
+.run{background:#ef4444;color:white;}
+
+.log{
+  margin-top:15px;
+  text-align:center;
+  min-height:40px;
+}
+
+@keyframes shake{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  50%{transform:translateX(5px)}
+  75%{transform:translateX(-5px)}
+  100%{transform:translateX(0)}
+}
+
+.shake{animation:shake .3s;}
+
+@media(max-width:500px){
+  .game{width:90%;}
+  button{font-size:18px;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="game" id="game">
+  <h1>⚔️ Oyuncu vs Canavar</h1>
+
+  🧑 Oyuncu
+  <div class="bar"><div id="playerBar" class="fill player"></div></div>
+
+  👹 Canavar
+  <div class="bar"><div id="monsterBar" class="fill monster"></div></div>
+
+  <button class="attack" onclick="attack()">Saldır</button>
+  <button class="heal" onclick="heal()">İksir</button>
+  <button class="special" onclick="special()">⭐ Özel</button>
+  <button class="run" onclick="runAway()">Kaç</button>
+
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+// 🔊 SESLER
+const sounds = {
+  attack:new Audio("https://assets.mixkit.co/sfx/preview/mixkit-sword-slash-2176.mp3"),
+  heal:new Audio("https://assets.mixkit.co/sfx/preview/mixkit-magic-heal-2998.mp3"),
+  win:new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-level-completed-2059.mp3"),
+  lose:new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3")
+};
+
+let playerHP=100;
+let monsterHP=120;
+let potions=2;
+let specialReady=true;
+let score=0;
+
+const log=document.getElementById("log");
+const playerBar=document.getElementById("playerBar");
+const monsterBar=document.getElementById("monsterBar");
+const game=document.getElementById("game");
+
+function rand(min,max){
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function updateBars(){
+  playerBar.style.width=playerHP+"%";
+  monsterBar.style.width=(monsterHP/120*100)+"%";
+}
+
+function shake(){
+  game.classList.add("shake");
+  setTimeout(()=>game.classList.remove("shake"),300);
+}
+
+function end(result){
+  localStorage.setItem("result",result);
+  localStorage.setItem("score",score);
+
+  const best=localStorage.getItem("bestScore")||0;
+  if(score>best) localStorage.setItem("bestScore",score);
+
+  location.href="result.html";
+}
+
+function monsterAttack(){
+  const dmg=monsterHP<40?rand(20,30):rand(10,18);
+  playerHP-=dmg;
+  shake();
+  log.textContent=`👹 Canavar ${dmg} vurdu`;
+  if(playerHP<=0){
+    sounds.lose.play();
+    end("lose");
+  }
+}
+
+function attack(){
+  const dmg=rand(10,20);
+  monsterHP-=dmg;
+  score+=dmg;
+  sounds.attack.play();
+  log.textContent=`⚔️ ${dmg} hasar verdin`;
+  if(monsterHP<=0){
+    sounds.win.play();
+    end("win");
+  }
+  monsterAttack();
+  updateBars();
+}
+
+function heal(){
+  if(potions<=0){
+    log.textContent="❌ İksir yok";
+    return;
+  }
+  const heal=rand(20,30);
+  playerHP=Math.min(100,playerHP+heal);
+  potions--;
+  sounds.heal.play();
+  log.textContent=`💊 ${heal} can aldın`;
+  monsterAttack();
+  updateBars();
+}
+
+function special(){
+  if(!specialReady){
+    log.textContent="⏳ Özel hazır değil";
+    return;
+  }
+  const dmg=rand(30,45);
+  monsterHP-=dmg;
+  score+=dmg*2;
+  sounds.attack.play();
+  specialReady=false;
+  setTimeout(()=>specialReady=true,3000);
+  log.textContent=`⭐ ÖZEL! ${dmg} HASAR`;
+  if(monsterHP<=0){
+    sounds.win.play();
+    end("win");
+  }
+  monsterAttack();
+  updateBars();
+}
+
+function runAway(){
+  end("run");
+}
+
+updateBars();
+</script>
+
+</body>
+</html>
